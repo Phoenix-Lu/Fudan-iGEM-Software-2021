@@ -4,7 +4,7 @@ import time
 import re
 from openpyxl import workbook
 from openpyxl import load_workbook
-from lxml import etree
+#from lxml import etree
 from selenium import webdriver
 
 
@@ -22,6 +22,7 @@ class Part:
         self.team = team
         self.year = year
         self.sequence = sequence
+        #stars 需要再细化
         self.stars = stars
         self.assemble_std = assemble_std
         self.contents = contents
@@ -30,10 +31,28 @@ class Part:
         self.parts_used = parts_used
         self.using_parts = using_parts
 
+    def print_parts(self):
+        print(f"part_num = {self.part_num}")
+        print(f"part_name = {self.part_name}")
+        print(f"part_id = {self.part_id}")
+        print(f"part_url = {self.part_url}")
+        print(f"part_type = {self.part_type}")
+        print(f"part_team = {self.team}")
+        print(f"part_year = {self.year}")
+        print(f"part_sequence = {self.sequence}")
+        print(f"part_stars = {self.stars}")
+        print(f"part_assemble_std = {self.assemble_std}")
+        print(f"contents = {self.contents}")
+        print(f"part_used = {self.parts_used}")
+        print(f"using_parts = {self.using_parts}")
+        print("------------------------------")
+
+
+
 
 all_team_with_urls = []
 all_parts = []
-
+whole_Parts = []
 
 def inter():
     # 需要标注输入格式,届时可以通过前端重写
@@ -45,7 +64,10 @@ def inter():
 def web_analysis_and_get_team_lists(year):
     # year 可变
     # 此处的地址可能需要更改
-    driver = webdriver.Chrome('C:\Python x64\Python\chromedriver.exe')
+
+    #desktop地址： ‘D:\chromedriver.exe’
+    #laptop地址：'C:\Python x64\Python\chromedriver.exe'
+    driver = webdriver.Chrome('D:\chromedriver.exe')
     front_url = "https://igem.org/Team_Parts?year="
     url = front_url + year
     driver.get(url)
@@ -84,15 +106,72 @@ def get_parts_urls(all_team_with_urls):
         year = a_team[0]
         team = a_team[1]
         url = a_team[2]
-        driver = webdriver.Chrome('C:\Python x64\Python\chromedriver.exe')
+        # desktop地址： ‘D:\chromedriver.exe’
+        # laptop地址：'C:\Python x64\Python\chromedriver.exe'
+        driver = webdriver.Chrome('D:\chromedriver.exe')
         driver.get(url)
         time.sleep(5)
-        the_list =
+        #先将基础属性放在列表里
+        part_num_list = []
+        part_numurl_list = []
+        part_type_list = []
+        part_desc = []
+        part_designer = []
+        part_len = []
+        #得到第一张表的数据（favored）
+        for item in driver.find_elements_by_xpath('/html/body/div/div[4]/div/div/table[1]/tbody/tr/td[3]/a'):
+            part_num_list.append(str(item.text))
+            part_numurl_list.append(item.get_attribute('href'))
+        for item in driver.find_elements_by_xpath('/html/body/div/div[4]/div/div/table[1]/tbody/tr/td[4]'):
+            part_type_list.append(str(item.text))
+        for item in driver.find_elements_by_xpath('/html/body/div/div[4]/div/div/table[1]/tbody/tr/td[5]'):
+            part_desc.append(str(item.text))
+        for item in driver.find_elements_by_xpath('/html/body/div/div[4]/div/div/table[1]/tbody/tr/td[6]'):
+            part_designer.append(str(item.text))
+        for item in driver.find_elements_by_xpath('/html/body/div/div[4]/div/div/table[1]/tbody/tr/td[7]'):
+            part_len.append(str(item.text))
+        #为第第一张表（favored）创建类
+            #star第一个1代表favor
+        for i in range(0, len(part_num_list)-1):
+            new_part = Part(part_num_list[i], '', '', part_numurl_list[i], part_desc[i], part_type_list[i], team, year, '', '', '1', '', [], [], [])
+            whole_Parts.append(new_part)
 
+        part_num_list = []
+        part_numurl_list = []
+        part_type_list = []
+        part_desc = []
+        part_designer = []
+        part_len = []
+        #得到第二张表的数据（NOT favored）
+        for item in driver.find_elements_by_xpath('/html/body/div/div[4]/div/div/table[2]/tbody/tr/td[3]/a'):
+            part_num_list.append(str(item.text))
+            part_numurl_list.append(item.get_attribute('href'))
+        for item in driver.find_elements_by_xpath('/html/body/div/div[4]/div/div/table[2]/tbody/tr/td[4]'):
+            part_type_list.append(str(item.text))
+        for item in driver.find_elements_by_xpath('/html/body/div/div[4]/div/div/table[2]/tbody/tr/td[5]'):
+            part_desc.append(str(item.text))
+        for item in driver.find_elements_by_xpath('/html/body/div/div[4]/div/div/table[2]/tbody/tr/td[6]'):
+            part_designer.append(str(item.text))
+        for item in driver.find_elements_by_xpath('/html/body/div/div[4]/div/div/table[2]/tbody/tr/td[7]'):
+            part_len.append(str(item.text))
+        # 为第第一张表（favored）创建类
+            # star第一个1代表favor
+        for i in range(0, len(part_num_list) - 1):
+             new_part = Part(part_num_list[i], '', '', part_numurl_list[i], part_desc[i], part_type_list[i], team, year, '', '', '0', '', [], [], [])
+             whole_Parts.append(new_part)
+        '''
+        print(part_num_list)
+        print(part_numurl_list)
+        print(part_type_list)
+        print(part_desc)
+        print(part_designer)
+        print(part_len)
+        '''
     return
 
 
 # 可能需要拆分
+
 def get_parts_details():
     return
 
@@ -225,7 +304,11 @@ def main():
 def main():
     year = '2020'
     # for year in range(2020):
-    web_analysis_and_get_team_lists(str(year))
+    ##all_team_with_urls = web_analysis_and_get_team_lists(str(year))
+    all_team_with_urls = [['2020','teamA','http://parts.igem.org/cgi/partsdb/pgroup.cgi?pgroup=iGEM2020&group=GDSYZX'],['2020','teamB',' http://parts.igem.org/cgi/partsdb/pgroup.cgi?pgroup=iGEM2020&group=Fudan']]
+    get_parts_urls(all_team_with_urls)
+    for item in whole_Parts:
+        item.print_parts()
     return 0
 
 
