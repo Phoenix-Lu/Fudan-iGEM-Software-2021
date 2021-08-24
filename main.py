@@ -6,13 +6,17 @@ from openpyxl import workbook
 from openpyxl import load_workbook
 #from lxml import etree
 from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains
+
+#全篇的sleep可以优化
+
 
 
 class Part:
     # part_num(BBa.), part_name(CAP), part_id(内部代码), part_type(com/pro...),star（包含队伍使用和独特的标记)
     def __init__(self, part_num, part_name, part_id, part_url,
                  short_desc, part_type, team, year, sequence, contents,
-                 stars, assemble_std, linking_parts, parts_used, using_parts):
+                 stars, assemble_std, linking_parts, parts_used, using_parts, len):
         self.part_num = part_num
         self.part_name = part_name
         self.part_id = part_id
@@ -30,6 +34,7 @@ class Part:
         # how to get
         self.parts_used = parts_used
         self.using_parts = using_parts
+        self.len = len
 
     def print_parts(self):
         print(f"part_num = {self.part_num}")
@@ -41,10 +46,12 @@ class Part:
         print(f"part_year = {self.year}")
         print(f"part_sequence = {self.sequence}")
         print(f"part_stars = {self.stars}")
+        print(f"part_desc = {self.short_desc}")
         print(f"part_assemble_std = {self.assemble_std}")
         print(f"contents = {self.contents}")
         print(f"part_used = {self.parts_used}")
         print(f"using_parts = {self.using_parts}")
+        print(f"len = {self.len}")
         print("------------------------------")
 
 
@@ -83,6 +90,7 @@ def web_analysis_and_get_team_lists(year):
         print(item)
 
     print('-------all_team_with_urls get----------')
+    driver.close()
     return all_team_with_urls
 
 
@@ -99,6 +107,13 @@ tr为行，td为列，可以定位到具体的元素了
 
 def set_star_database():
     return
+
+
+def open_a_part_with_url(url):
+    driver = webdriver.Chrome('D:\chromedriver.exe')
+    driver.get(url)
+    time.sleep(5)
+    return driver
 
 
 def get_parts_urls(all_team_with_urls):
@@ -133,7 +148,7 @@ def get_parts_urls(all_team_with_urls):
         #为第第一张表（favored）创建类
             #star第一个1代表favor
         for i in range(0, len(part_num_list)-1):
-            new_part = Part(part_num_list[i], '', '', part_numurl_list[i], part_desc[i], part_type_list[i], team, year, '', '', '1', '', [], [], [])
+            new_part = Part(part_num_list[i], '', '', part_numurl_list[i], part_desc[i], part_type_list[i], team, year, '', '', '1', '', [], [], [], part_len[i])
             whole_Parts.append(new_part)
 
         part_num_list = []
@@ -157,23 +172,59 @@ def get_parts_urls(all_team_with_urls):
         # 为第第一张表（favored）创建类
             # star第一个1代表favor
         for i in range(0, len(part_num_list) - 1):
-             new_part = Part(part_num_list[i], '', '', part_numurl_list[i], part_desc[i], part_type_list[i], team, year, '', '', '0', '', [], [], [])
+             new_part = Part(part_num_list[i], '', '', part_numurl_list[i], part_desc[i], part_type_list[i], team, year, '', '', '0', '', [], [], [], part_len[i])
              whole_Parts.append(new_part)
-        '''
-        print(part_num_list)
-        print(part_numurl_list)
-        print(part_type_list)
-        print(part_desc)
-        print(part_designer)
-        print(part_len)
-        '''
+        print("-----------get_parts_urls-----------")
+        driver.close()
     return
 
 
 # 可能需要拆分
 
 def get_parts_details():
+    get_sequence()
+    return 0
+
+
+#used代表使用了该part的part
+def get_used_parts():
     return
+
+
+
+
+#using代表该part的组成part
+def get_using_parts():
+    return
+
+
+def get_sequence():
+    for a_part in whole_Parts:
+        url = a_part.part_url
+        driver = webdriver.Chrome('D:\chromedriver.exe')
+        driver.get(url)
+        time.sleep(5)
+        sequence_entrance = driver.find_elements_by_xpath('//*[@id="seq_features_div"]/div[1]/div[1]/span[5]')
+        #webdriver.ActionChains(driver).move_to_element(sequence_entrance[0]).click(sequence_entrance[0]).perform().find_elements_by_xpath("/html/body/pre/text()")
+        webdriver.ActionChains(driver).move_to_element(sequence_entrance[0]).click(sequence_entrance[0]).perform()
+        time.sleep(1)
+        #切换窗口到新跳出的窗口
+        handles = driver.window_handles
+        index_handle = driver.current_window_handle#备注：可能需要在操作前，先关闭其他浏览器窗口
+        for handle in handles:
+            if handle != index_handle:
+                driver.switch_to.window(handle)
+        sequence = driver.find_elements_by_xpath("/html/body/pre")#备注：所有xpath出来都是list，记得切换为元素
+        a_part.sequence = str(sequence[0].text)
+        driver.close()
+
+        handle = driver.window_handles[0]
+        driver.switch_to.window(handle)
+        driver.close()
+    return
+
+
+
 
 
 def store_parts(team_parts_list):
@@ -307,10 +358,10 @@ def main():
     ##all_team_with_urls = web_analysis_and_get_team_lists(str(year))
     all_team_with_urls = [['2020','teamA','http://parts.igem.org/cgi/partsdb/pgroup.cgi?pgroup=iGEM2020&group=GDSYZX'],['2020','teamB',' http://parts.igem.org/cgi/partsdb/pgroup.cgi?pgroup=iGEM2020&group=Fudan']]
     get_parts_urls(all_team_with_urls)
+    get_parts_details()
     for item in whole_Parts:
         item.print_parts()
     return 0
 
 
 main()
-#test for github
