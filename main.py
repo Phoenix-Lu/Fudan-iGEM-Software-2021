@@ -49,7 +49,7 @@ class Part:
         print(f"part_stars = {self.stars}")
         print(f"part_desc = {self.short_desc}")
         print(f"part_assemble_std = {self.assemble_std}")
-        print(f"contents = {self.contents}")
+        print(f"contents"f" = {self.contents}")
         print(f"part_used = {self.parts_used}")
         print(f"using_parts = {self.using_parts}")
         print(f"len = {self.len}")
@@ -110,13 +110,6 @@ def set_star_database():
     return
 
 
-def open_a_part_with_url(url):
-    driver = webdriver.Chrome('D:\chromedriver.exe')
-    driver.get(url)
-    time.sleep(5)
-    return driver
-
-
 def get_parts_urls(all_team_with_urls):
     for a_team in all_team_with_urls:
         year = a_team[0]
@@ -138,7 +131,7 @@ def get_parts_urls(all_team_with_urls):
         for item in driver.find_elements_by_xpath('/html/body/div/div[4]/div/div/table[1]/tbody/tr/td[3]/a'):
             part_num_list.append(str(item.text))
             part_numurl_list.append(item.get_attribute('href'))
-        for item in driver.find_elements_by_xpath('/html/body/div/div[4]/div/div``/table[1]/tbody/tr/td[4]'):
+        for item in driver.find_elements_by_xpath('/html/body/div/div[4]/div/div/table[1]/tbody/tr/td[4]'):
             part_type_list.append(str(item.text))
         for item in driver.find_elements_by_xpath('/html/body/div/div[4]/div/div/table[1]/tbody/tr/td[5]'):
             part_desc.append(str(item.text))
@@ -172,7 +165,7 @@ def get_parts_urls(all_team_with_urls):
             part_len.append(str(item.text))
         # 为第第一张表（favored）创建类
             # star第一个1代表favor
-        for i in range(0, len(part_num_list) - 1):
+        for i in range(0, len(part_num_list)):
              new_part = Part(part_num_list[i], '', '', part_numurl_list[i], part_desc[i], part_type_list[i], team, year, '', '', '0', '', [], [], [], part_len[i])
              whole_Parts.append(new_part)
         print("-----------get_parts_urls-----------")
@@ -190,6 +183,10 @@ def get_parts_details():
         #以上打开了part的主网页界面
         #-------------------------------------------
         get_using_parts_and_other_info(driver, a_part)
+        get_assemble_std(driver, a_part)
+        #get_used_parts(driver, a_part)
+        get_assemble_std(driver, a_part)
+        #GET_SEQUENCE 自带关闭整个窗口的作用，所以所有数据获取请在这句之前玩完成
         get_sequence(driver, a_part)
     return 0
 
@@ -203,10 +200,23 @@ def get_used_parts():
         time.sleep(5)
     return
 
+#已完成
+def get_assemble_std(driver, a_part):
+    assemble_lists = []
+    for item in driver.find_elements_by_xpath('//*[@id="assembly_compatibility"]/div/ul/li'):
+         if str(item.get_attribute("class")) == "boxctrl box_green" :
+             assemble_lists.append('1')
+         else:
+             assemble_lists.append('0')
+        #assemble_lists.append(str(item.get_attribute("class")))
 
 
+    a_part.assemble_std = assemble_lists
+    return
 
-#这一部分写part主页面内的所有内容。using代表该part的组成part,不需要额外打开页面加载
+
+#这一部分写part主页面内的所有内容。using代表该part的组成part,不需要额外打开页面加载；
+#已完成，不关闭窗口
 def get_using_parts_and_other_info(driver, a_part):
     if a_part.part_type != 'Composite':
         a_part.using_parts = ['self']
@@ -224,7 +234,7 @@ def get_using_parts_and_other_info(driver, a_part):
         a_part.using_parts = using_parts_list
     return
 
-
+#自带关闭，已完成
 def get_sequence(driver, a_part):
     sequence_entrance = driver.find_elements_by_xpath('//*[@id="seq_features_div"]/div[1]/div[1]/span[5]')
     #webdriver.ActionChains(driver).move_to_element(sequence_entrance[0]).click(sequence_entrance[0]).perform().find_elements_by_xpath("/html/body/pre/text()")
@@ -243,9 +253,6 @@ def get_sequence(driver, a_part):
     driver.switch_to.window(handle)
     driver.close()
     return
-
-
-
 
 
 def store_parts(team_parts_list):
