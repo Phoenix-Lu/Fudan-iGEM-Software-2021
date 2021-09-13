@@ -7,9 +7,18 @@ from openpyxl import load_workbook
 #from lxml import etree
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
 
 #全篇的sleep函数可以优化
 #打不开的情况需要try函数优化
+
+
+
+'''
+`driver.set_page_load_tiemout
+`'''
 
 
 class Part:
@@ -78,9 +87,14 @@ def web_analysis_and_get_team_lists(year):
     driver = webdriver.Chrome('D:\chromedriver.exe')
     front_url = "https://igem.org/Team_Parts?year="
     url = front_url + year
-    driver.get(url)
-    time.sleep(5)
-    # 时间可能需要更长
+    while 1:
+        try:
+            driver.get(url)
+            WebDriverWait(driver, 60, 1).until(EC.presence_of_element_located(By.XPATH, '/html/body/div/div[3]/div/div/div/div[4]/table/tbody/tr/td/div/a'))
+            break
+        except:
+            driver.quit()
+            pass
     one_team_with_url = []
     the_list = driver.find_elements_by_xpath('/html/body/div/div[3]/div/div/div/div[4]/table/tbody/tr/td/div/a')
     for item in the_list:
@@ -95,15 +109,7 @@ def web_analysis_and_get_team_lists(year):
     return all_team_with_urls
 
 
-'''
-    xpath:
-/html/body/div/div[3]/div/div/div/div[4]/table[4]/tbody/\
- tr[1]/td[1]/div/a
-a 内有我们需要的内容
-tr为行，td为列，可以定位到具体的元素了
 
-//*[@id="Table_1"]/tbody/tr[1]/td[3]q
-'''
 
 
 def set_star_database():
@@ -118,9 +124,18 @@ def get_parts_urls(all_team_with_urls):
         # desktop地址： ‘D:\chromedriver.exe’
         # laptop地址：'C:\Python x64\Python\chromedriver.exe'
         driver = webdriver.Chrome('D:\chromedriver.exe')
-        driver.get(url)
-        time.sleep(5)
+        while 1:
+            try:
+                driver.get(url)
+                WebDriverWait(driver, 5, 1).until(EC.presence_of_element_located((By.XPATH, '//*[@id="new_menubar"]/ul/li[1]/div[1]')), message = '')
+                break
+            except:
+                print("刷新")
+                driver.refresh()
+                pass
+        time.sleep(1)
         #先将基础属性放在列表里
+
         part_num_list = []
         part_numurl_list = []
         part_type_list = []
@@ -178,27 +193,56 @@ def get_parts_details():
     for a_part in whole_Parts:
         url = a_part.part_url
         driver = webdriver.Chrome('D:\chromedriver.exe')
-        driver.get(url)
-        time.sleep(5)
+        while 1:
+            try:
+                driver.get(url)
+                WebDriverWait(driver, 60, 1).until(EC.presence_of_element_located((By.XPATH, '//*[@id="seq_features_div"]/div[1]/div[1]/span[5]')), message = '')
+                break
+            except:
+                print("刷新")
+                driver.refresh()
+                pass
+        time.sleep(1)
         #以上打开了part的主网页界面
         #-------------------------------------------
         get_using_parts_and_other_info(driver, a_part)
         get_assemble_std(driver, a_part)
-        #get_used_parts(driver, a_part)
-        get_assemble_std(driver, a_part)
+        #get_used_parts 会前进一个窗口，记得后退
+        get_used_parts(driver, a_part)
         #GET_SEQUENCE 自带关闭整个窗口的作用，所以所有数据获取请在这句之前玩完成
         get_sequence(driver, a_part)
     return 0
 
 
 #used代表使用了该part的part，需要额外打开页面
-def get_used_parts():
-    for a_part in whole_Parts:
-        url = a_part.part_url
-        driver = webdriver.Chrome('D:\chromedriver.exe')
-        driver.get(url)
-        time.sleep(5)
+def get_used_parts(driver, a_part):
+    item = driver.find_elements_by_xpath('//*[@id="part_status_wrapper"]/div[4]/a')
+    url = str(item[0].get_attribute('href'))
+    while 1:
+        try:
+            driver.get(url)
+            WebDriverWait(driver, 60, 1).until(
+                EC.presence_of_element_located((By.CLASS_NAME,'noul_link part_link')),
+                message='')
+            break
+        except:
+            print("刷新")
+            driver.refresh()
+            pass
+
+
+    used_parts =  []
+    for item in list:
+        used_parts.append(str(item.text))
+    a_part.used_parts = used_parts
+    driver.back()
     return
+
+#//*[@id="part_status_wrapper"]/div[4]/a
+#//*[@id="part_status_wrapper"]/div[4]/a
+
+
+
 
 #已完成
 def get_assemble_std(driver, a_part):
@@ -209,8 +253,6 @@ def get_assemble_std(driver, a_part):
          else:
              assemble_lists.append('0')
         #assemble_lists.append(str(item.get_attribute("class")))
-
-
     a_part.assemble_std = assemble_lists
     return
 
