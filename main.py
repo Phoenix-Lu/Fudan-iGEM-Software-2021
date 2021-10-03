@@ -125,7 +125,7 @@ def get_parts_urls(all_team_with_urls):
         while 1:
             try:
                 driver.get(url)
-                WebDriverWait(driver, 5, 1).until(EC.presence_of_element_located((By.XPATH, '//*[@id="new_menubar"]/ul/li[1]/div[1]')), message = '')
+                WebDriverWait(driver, 60, 1).until(EC.presence_of_element_located((By.XPATH, '//*[@id="new_menubar"]/ul/li[1]/div[1]')), message = '')
                 break
             except:
                 print("刷新")
@@ -296,7 +296,7 @@ def get_sequence(driver, a_part):
         print(f"{a_part.part_num} 没有序列或序列获取失败")
         return
 
-    time.sleep(1)
+    time.sleep(2)
     #切换窗口到新跳出的窗口
     handles = driver.window_handles
     index_handle = driver.current_window_handle#备注：可能需要在操作前，先关闭其他浏览器窗口
@@ -339,7 +339,7 @@ def main():
     get_parts_details()  # 所有信息存在全局变量 whole_Parts 中，并且一个一存/一年一存
     return 0
     '''
-    years = [2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020]
+    years = [2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020]
     for year in years:
         all_team_with_urls = web_analysis_and_get_team_lists(str(year))
         get_parts_urls(all_team_with_urls) #所有信息存在全局变量 whole_Parts 中
