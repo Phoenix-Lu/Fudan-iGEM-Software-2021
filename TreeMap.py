@@ -2,19 +2,7 @@ from pyecharts import options as opts
 from pyecharts.charts import Tree
 from openpyxl import workbook
 from openpyxl import load_workbook
-
-'''
-TODOLIST
-1.None和self的处理，是否需要基于库函数？ As if：if none， print ”Self“
-2.显示格式
-3.是否需要自引用
-4.节点样式设定？
-5.url超链接能不能做
-6.是否需要更换形式！！因为url受限了
-7.库本身自带重复，自引用 记得删除
-8.图示注意哦！
-9.文字处理，用value标记是否为distri，fav等，根据value来改变labelopts
-'''
+import global_vary
 
 #flag暂定是如此
 def switch_flag_for_kind(key, value):
@@ -44,8 +32,9 @@ def set_opts_from_flag(a_dict):
 
 
 def get_next_level(part):
-    #wb = load_workbook('D:\whole_collection_processed.xlsx')
-    #ws = wb['Sheet1']
+    global  wb, ws
+    ws = global_vary.get_value('ws')
+    wb = global_vary.get_value('wb')
     next_level_dict = {}
     for cell in ws['A']:
         if cell.value == part:
@@ -61,10 +50,14 @@ def get_next_level(part):
 
     return next_level_dict #dict{'twins', {using_parts},{used_parts}}
 
+def get_self_score(search_part):
+    for cell in ws['A']:
+        if cell.value == search_part:
+            return int(ws['W'+str(cell.row)].value)
 
 def get_self_distri(part):
-    #wb = load_workbook('D:\whole_collection_processed.xlsx')
-    #ws = wb['Sheet1']
+
+    global wb, ws
     for cell in ws['A']:
         if cell.value == part:
             row = cell.row
@@ -72,24 +65,25 @@ def get_self_distri(part):
 
 
 def tree_data_set (central_part):
+    global ws, wb
+    ws = global_vary.get_value('ws')
+    wb = global_vary.get_value('wb')
     central_part_bba = central_part
-    #central_part_url = get_self_url(central_part)
-    central_part_url = 0
-    level_zero_data = {'name' : central_part_bba, 'value' : central_part_url}
+    central_part_score = get_self_score(central_part)
+
+    level_zero_data = {'name' : central_part_bba, 'value' : central_part_score}
     next_level_dict = get_next_level(str(central_part_bba))
     first_children_list = []
     for key,value in next_level_dict.items():
         for item in value:
-            flag = switch_flag_for_kind(key, item)
-
-            a_dict = {'name': item, 'value': flag}
-            a_dict = set_opts_from_flag(a_dict)
+            score = get_self_score(item)
+            a_dict = {'name': item, 'value': score}
             second_level_dict = get_next_level(str(item))
             second_children_list = []
             for key, value in second_level_dict.items():
                 for item2 in value:
-                    flag = switch_flag_for_kind(key, item2)
-                    b_dict = {'name': item2, 'value': flag}
+                    score = get_self_score(item2)
+                    b_dict = {'name': item2, 'value': score}
                     b_dict = set_opts_from_flag(b_dict)
                     second_children_list.append(b_dict)
             a_dict['children'] = second_children_list
@@ -97,16 +91,33 @@ def tree_data_set (central_part):
     level_zero_data['children'] = first_children_list
     return [level_zero_data]
 
-def main():
-    global  wb, ws
-    wb = load_workbook('D:\whole_collection_processed.xlsx')
-    ws= wb['Sheet1']
-    target_part = 'BBa_K3202047'
-    data = tree_data_set(target_part)
+#饭回[[rel_lst],[sig_lst]]
+def tree_data_process(tree_data):
+    whole_dic = tree_data[0]
+    out_put_dict = {}
+    first_level_childrenlst = whole_dic['children']
+    for first_level_child in first_level_childrenlst:
+        key = first_level_child['name']
+        value = first_level_child['value']
+        out_put_dict[key] = value
+        second_level_childlst = first_level_child['children']
+        for second_level_child in second_level_childlst:
+            key = second_level_child['name']
+            value = second_level_child['value']
+            out_put_dict[key] = value
+
+    out_put_lst = [[],[]]
+    for key, value in out_put_dict.items():
+        out_put_lst[0].append(key)
+        out_put_lst[1].append(value)
+    return out_put_lst
+
+
+def set_tree(data):
     c = (
         Tree(init_opts= opts.InitOpts(width= '1350px', height='750px'))#这里改界面初始,例如放大界面
         .add(
-            series_name = target_part,
+            series_name = data[0]['name'],
             data= data,
             pos_top="15%",
             pos_bottom="15%",
@@ -114,16 +125,16 @@ def main():
             pos_left='5%',
             layout="radial",
             symbol="emptyCircle",
-            #label_opts = opts.LabelOpts(font_weight = 'bolder', font_size = '30', background_color = '#9966ff'),
             symbol_size=7,)
         .set_series_opts(label_opts = opts.LabelOpts())
         .set_global_opts(title_opts=opts.TitleOpts(title="Tree-Layout"))
         .set_global_opts(tooltip_opts=opts.TooltipOpts(trigger="item", trigger_on="mousemove"))
-        .render("treelayout.html")
+        .render('TreeMapResults\\' + data[0]['name'] + "tree.html")
+        #可以有其他render
         )
     return 1
 
-main()
+
 
 
 '''
